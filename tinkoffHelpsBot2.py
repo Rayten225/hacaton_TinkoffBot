@@ -4,6 +4,7 @@ import requests
 import json
 import sqlite3
 from telebot import types 
+import os
 
 # Подключение бота
 bot = telebot.TeleBot('6622934137:AAFKQwaUYIItogSWdkxUwn6gjOp0SNaEpn4')
@@ -29,8 +30,16 @@ def get_request(message):
     conn = sqlite3.connect('tinkoffBot.sql')
     cur = conn.cursor() 
 
-    cur.execute("INSERT INTO users (name, subs) VALUES ('%s', '%s')" % (message.chat.id, subs))
+    checkID = cur.execute('SELECT COUNT(*) FROM users WHERE  name =  %s'  %  name)
+    results = checkID.fetchone()
+
     conn.commit()
+    print(results)
+    if results == (0,):
+        cur.execute("INSERT INTO users (name, subs) VALUES ('%s', '%s')" % (message.chat.id, subs))
+        conn.commit()
+        print(results)
+
 
     cur.close()
     conn.close()
@@ -58,6 +67,59 @@ def callback(call):
     bot.send_message(call.message.chat.id, info)
 
 
+@bot.message_handler(commands=['notificationsadmin1123'])
+def ask_for_photo(message):
+    msg = bot.send_message(message.chat.id, 'Отправьте фото:')
+    bot.register_next_step_handler(msg, receive_photo)
+
+def receive_photo(message):
+    if message.photo:
+        file_info = bot.get_file(message.photo[-1].file_id)
+        downloaded_file = bot.download_file(file_info.file_path)
+
+        if not os.path.exists('photos'):
+            os.makedirs('photos')
+
+        with open(f'photos/{message.photo[-1].file_id}.jpg', 'wb') as new_file:
+            new_file.write(downloaded_file)
+
+        msg = bot.send_message(message.chat.id, 'Фото получено. Теперь отправьте описание:')
+        bot.register_next_step_handler(msg, lambda m: receive_description(m, message.photo[-1].file_id))
+    else:
+        bot.send_message(message.chat.id, 'Пожалуйста, отправьте фото.')
+
+def receive_description(message, photo_file_id):
+    description = message.text
+    if description:
+        broadcast_message(photo_file_id, description)
+        bot.send_message(message.chat.id, 'Сообщение отправлено всем пользователям.')
+    else:
+        bot.send_message(message.chat.id, 'Описание не может быть пустым.')
+
+def broadcast_message(photo_file_id, description):
+    conn = sqlite3.connect('tinkoffBot.sql')
+    cur = conn.cursor()
+
+    cur.execute('SELECT name FROM users WHERE subs = True')
+    user_ids = cur.fetchall()
+
+    with open(f'photos/{photo_file_id}.jpg', 'rb') as photo:
+        for user_id in user_ids:
+            try:
+                bot.send_photo(user_id[0], photo, caption=description)
+                photo.seek(0)
+            except Exception as e:
+                print(f'Ошибка при отправке сообщения пользователю {user_id[0]}: {e}')
+
+    cur.close()
+    conn.close()
+
+
+
+
+
+
+
 @bot.message_handler(content_types=['text'])
 def text(message):
     qestion = message.text.strip()
@@ -69,4 +131,8 @@ def text(message):
     else:
         bot.reply_to(message, f'Ошибка запроса: "{qestion}"')
   
+
+
+    
+
 bot.polling(none_stop=True)
