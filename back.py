@@ -17,7 +17,9 @@ def assist():
         }), 422
 
     query = data['query']
-    response_text = generate_message('query')
+    print("generation started")
+    response_text = generate_message(query)
+    print(response_text)
     response_links = ["https://www.tinkoff.ru/"]
 
     return jsonify({

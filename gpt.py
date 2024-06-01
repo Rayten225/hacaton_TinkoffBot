@@ -2,6 +2,7 @@ import requests
 def generate_message(query):
     req = {
             "modelUri": "gpt://b1g72uajlds114mlufqi/yandexgpt/latest",
+            # "modelUri": "ds://bt1aij3mg7k5iflurk8n",
             "completionOptions": {
                 "stream": False,
                 "temperature": 0.1,
@@ -10,7 +11,7 @@ def generate_message(query):
             "messages": [
                 {
                 "role": "user",
-                "text": "как зарегистрировать ип"
+                "text": query
                 }
             ]
     }
@@ -19,5 +20,5 @@ def generate_message(query):
     response = requests.post("https://llm.api.cloud.yandex.net/foundationModels/v1/completion",
         headers=headers, json=req)
     if response.status_code == 200:
-        return response
+        return response.text
     return "Bad request"
