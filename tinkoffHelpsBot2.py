@@ -12,33 +12,43 @@ API = '80ed4263619171fd614122439316cf8d' #Ключ API
 # Обработка функции при старте
 @bot.message_handler(commands=['start'])
 def start(message):
+    name = message.from_user.id
+    subs = 1
     conn = sqlite3.connect('tinkoffBot.sql')
     cur = conn.cursor()
     cur.execute('CREATE TABLE IF NOT EXISTS users (id int auto increment primary key, name varchar(20), subs BOOLEAN)')
-    bot.send_message(message.chat.id, '+++')
-    cur.close()
-    conn.close()
-    bot.send_message(message.chat.id, 'Здравствуй! Я твой ИИ помощник по бизнес вопросам в Тинькофф. Задай свой вопрос:')
-
-# Обработка запроса пользователя
-@bot.message_handler(commands=['users'])
-def get_request(message):
-    keyboard = types.InlineKeyboardMarkup() 
-    name = message.from_user.id
-    subs = 1
-
-    conn = sqlite3.connect('tinkoffBot.sql')
-    cur = conn.cursor() 
-
     checkID = cur.execute('SELECT COUNT(*) FROM users WHERE  name =  %s'  %  name)
     results = checkID.fetchone()
-
+    bot.send_message(message.chat.id, 'Здравствуй! Я твой ИИ помощник по бизнес вопросам в Тинькофф. Задай свой вопрос:')
     conn.commit()
     print(results)
     if results == (0,):
         cur.execute("INSERT INTO users (name, subs) VALUES ('%s', '%s')" % (message.chat.id, subs))
         conn.commit()
         print(results)
+    
+    cur.close()
+    conn.close()
+    
+
+# Обработка запроса пользователя
+@bot.message_handler(commands=['users'])
+def get_request(message):
+    keyboard = types.InlineKeyboardMarkup() 
+
+
+    conn = sqlite3.connect('tinkoffBot.sql')
+    cur = conn.cursor() 
+
+    # checkID = cur.execute('SELECT COUNT(*) FROM users WHERE  name =  %s'  %  name)
+    # results = checkID.fetchone()
+
+    # conn.commit()
+    # print(results)
+    # if results == (0,):
+    #     cur.execute("INSERT INTO users (name, subs) VALUES ('%s', '%s')" % (message.chat.id, subs))
+    #     conn.commit()
+    #     print(results)
 
 
     cur.close()
@@ -47,24 +57,6 @@ def get_request(message):
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton('список пользователей', callback_data='users'))
     bot.send_message(message.chat.id, name, reply_markup=markup)
-
-
-@bot.callback_query_handler(func=lambda call: True)
-def callback(call):
-    conn = sqlite3.connect('tinkoffBot.sql')
-    cur = conn.cursor()
-
-    cur.execute('SELECT * FROM users')
-    users = cur.fetchall()
-
-    info = ''
-    for el in users:
-        info += f'Имя: {el[1]}'
-        
-    cur.close()
-    conn.close()
-
-    bot.send_message(call.message.chat.id, info)
 
 
 @bot.message_handler(commands=['notificationsadmin1123'])
@@ -119,6 +111,49 @@ def broadcast_message(photo_file_id, description):
     if os.path.exists(photo_path):
         os.remove(photo_path)
 
+
+@bot.message_handler(commands=['settings'])
+def settings(message):
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.add(types.InlineKeyboardButton('Подписаться', callback_data='subscribe'))
+    keyboard.add(types.InlineKeyboardButton('Отписаться', callback_data='unsubscribe'))
+    bot.send_message(message.chat.id, 'Подписаться на рассылки?', reply_markup=keyboard)
+
+@bot.callback_query_handler(func=lambda call: True)
+def handle_subscription(call):
+    conn = sqlite3.connect('tinkoffBot.sql')
+    cur = conn.cursor()
+    try:
+        if call.data == 'subscribe':
+            cur.execute('UPDATE users SET subs = 1 WHERE name = ?', (call.message.chat.id,))
+            bot.send_message(call.message.chat.id, 'Вы подписались на рассылки.')
+        elif call.data == 'unsubscribe':
+            cur.execute('UPDATE users SET subs = 0 WHERE name = ?', (call.message.chat.id,))
+            bot.send_message(call.message.chat.id, 'Вы отписались от рассылки.')
+        conn.commit()
+    except Exception as e:
+        bot.send_message(call.message.chat.id, 'Произошла ошибка: ' + str(e))
+    finally:
+        cur.close()
+        conn.close()
+
+@bot.callback_query_handler(func=lambda call: True)
+def handle_callback(call):
+    if call.data == 'subscribe':
+        cur.execute('UPDATE users SET subs = 1 WHERE name = ?', (call.message.chat.id,))
+        bot.send_message(call.message.chat.id, 'Вы подписались на рассылки.')
+        conn.commit()
+
+    elif call.data == 'unsubscribe':
+        cur.execute('UPDATE users SET subs = 0 WHERE name = ?', (call.message.chat.id,))
+        bot.send_message(call.message.chat.id, 'Вы отписались от рассылки.')
+        conn.commit()
+
+    cur.close()
+    conn.close()
+
+
+
 @bot.message_handler(content_types=['text'])
 def text(message):
     question = message.text
@@ -142,3 +177,4 @@ if __name__ == '__main__':
     print("Bot started")
     bot.polling(none_stop=True)
 
+    
