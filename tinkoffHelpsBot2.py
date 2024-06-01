@@ -25,7 +25,7 @@ def start(message):
 def get_request(message):
     keyboard = types.InlineKeyboardMarkup() 
     name = message.from_user.id
-    subs = True
+    subs = 1
 
     conn = sqlite3.connect('tinkoffBot.sql')
     cur = conn.cursor() 
@@ -100,10 +100,11 @@ def broadcast_message(photo_file_id, description):
     conn = sqlite3.connect('tinkoffBot.sql')
     cur = conn.cursor()
 
-    cur.execute('SELECT name FROM users WHERE subs = True')
+    cur.execute('SELECT name FROM users WHERE subs = ?', (True,))
     user_ids = cur.fetchall()
 
-    with open(f'photos/{photo_file_id}.jpg', 'rb') as photo:
+    photo_path = f'photos/{photo_file_id}.jpg'
+    with open(photo_path, 'rb') as photo:
         for user_id in user_ids:
             try:
                 bot.send_photo(user_id[0], photo, caption=description)
@@ -114,25 +115,11 @@ def broadcast_message(photo_file_id, description):
     cur.close()
     conn.close()
 
+    # Удаление фото после отправки
+    if os.path.exists(photo_path):
+        os.remove(photo_path)
 
+if __name__ == '__main__':
+    print("Bot started")
+    bot.polling(none_stop=True)
 
-
-
-
-
-@bot.message_handler(content_types=['text'])
-def text(message):
-    qestion = message.text.strip()
-    res = requests.get(f'http://api.openweathermap.org/data/2.5/weather?q={qestion}&appid={API}&units=metric') #Запрос к API нейросети и получение ответа
-# Обработка запроса если он выполнен, либо произошла ошибка
-    if res.status_code == 200:
-        data = json.loads(res.text)
-        bot.reply_to(message, f'{data['main']['temp']}')
-    else:
-        bot.reply_to(message, f'Ошибка запроса: "{qestion}"')
-  
-
-
-    
-
-bot.polling(none_stop=True)
