@@ -100,7 +100,7 @@ def broadcast_message(photo_file_id, description):
     conn = sqlite3.connect('tinkoffBot.sql')
     cur = conn.cursor()
 
-    cur.execute('SELECT name FROM users WHERE subs = ?', (True,))
+    cur.execute('SELECT name FROM users WHERE subs = 1')
     user_ids = cur.fetchall()
 
     photo_path = f'photos/{photo_file_id}.jpg'
@@ -118,6 +118,25 @@ def broadcast_message(photo_file_id, description):
     # Удаление фото после отправки
     if os.path.exists(photo_path):
         os.remove(photo_path)
+
+@bot.message_handler(content_types=['text'])
+def text(message):
+    question = message.text
+    if len(question) >= 6:
+        body = {
+            "query": message.text
+        }
+        response = requests.post("http://127.0.0.1:5000/assist", json=body)
+        if response.status_code == 200:
+            reply = response.text
+            # Проверяем длину ответа и разбиваем его, если необходимо
+            max_length = 4096
+            for i in range(0, len(reply), max_length):
+                bot.send_message(message.chat.id, reply[i:i + max_length])
+        else:
+            bot.send_message(message.chat.id, 'Ошибка при запросе к серверу.')
+    else:
+        bot.send_message(message.chat.id, "Слишком маленький запрос.")
 
 if __name__ == '__main__':
     print("Bot started")
