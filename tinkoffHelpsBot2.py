@@ -20,23 +20,23 @@ def start(message):
     bot.send_message(message.chat.id, 'Здравствуй! Я твой ИИ помощник по бизнес вопросам в Тинькофф. Задай свой вопрос:')
 
 # Обработка запроса пользователя
-@bot.message_handler(content_types=['text'])
+@bot.message_handler(commands=['users'])
 def get_request(message):
     keyboard = types.InlineKeyboardMarkup() 
-    name = message.from_user.first_name
+    name = message.from_user.id
     subs = True
 
     conn = sqlite3.connect('tinkoffBot.sql')
     cur = conn.cursor() 
 
-    cur.execute("INSERT INTO users (name, subs) VALUES ('%s', '%s')" % (message.from_user.first_name, subs))
+    cur.execute("INSERT INTO users (name, subs) VALUES ('%s', '%s')" % (message.chat.id, subs))
     conn.commit()
 
     cur.close()
     conn.close()
 
-    markup = telebot.types.InlineKeyboardMarkup()
-    markup.add(telebot.types.InlineKeyboardMarkup('список пользователей', callback_data='users'))
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton('список пользователей', callback_data='users'))
     bot.send_message(message.chat.id, name, reply_markup=markup)
 
 
@@ -58,14 +58,15 @@ def callback(call):
     bot.send_message(call.message.chat.id, info)
 
 
-
-#     qestion = message.text.strip().lower()
-#     res = requests.get(f'http://api.openweathermap.org/data/2.5/weather?q={qestion}&appid={API}&units=metric') #Запрос к API нейросети и получение ответа
-# # Обработка запроса если он выполнен, либо произошла ошибка
-#     if res.status_code == 200:
-#         data = json.loads(res.text)
-#         bot.reply_to(message, f'{data['main']['temp']}')
-#     else:
-#         bot.reply_to(message, f'Ошибка запроса: "{qestion}"')
+@bot.message_handler(content_types=['text'])
+def text(message):
+    qestion = message.text.strip()
+    res = requests.get(f'http://api.openweathermap.org/data/2.5/weather?q={qestion}&appid={API}&units=metric') #Запрос к API нейросети и получение ответа
+# Обработка запроса если он выполнен, либо произошла ошибка
+    if res.status_code == 200:
+        data = json.loads(res.text)
+        bot.reply_to(message, f'{data['main']['temp']}')
+    else:
+        bot.reply_to(message, f'Ошибка запроса: "{qestion}"')
   
 bot.polling(none_stop=True)
