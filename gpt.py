@@ -1,7 +1,7 @@
 import requests
 idcm = "bt1vpbph6bfjm2f4d2ue" #id-дообученной модели
 IAM =  "AQVN3uisVvr7XhoXVLyvk90b8HFUp9wkGcB9i0WO" #значение IAM-токена сервисного аккаунта.
-folderId = "b1g72uajlds114mlufqi"
+folderId = "b1g72uajlds114mlufqi" #идентификаторкаталога
 def generate_message(query):
     req = {
             "modelUri": f"ds://{idcm}", #подключение к дообученной модели yandexgpt на датасете
