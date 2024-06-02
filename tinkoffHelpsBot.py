@@ -7,7 +7,8 @@ from telebot import types
 import os
 
 # Подключение бота с помощью Token-а
-bot = telebot.TeleBot('6622934137:AAFKQwaUYIItogSWdkxUwn6gjOp0SNaEpn4')
+token = '6622934137:AAFKQwaUYIItogSWdkxUwn6gjOp0SNaEpn4'
+bot = telebot.TeleBot(token)
 # Хендлеры сообщений
 @bot.message_handler(commands=['start'])
 def start(message):
